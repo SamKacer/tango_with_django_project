@@ -1,3 +1,4 @@
+# encoding: utf-8
 import os
 os.environ.setdefault('django_settings_module', 'tango_with_django_project.settings')
 
@@ -9,18 +10,30 @@ def populate():
     # first create lists of dictionaries containing pages 
     python_pages = [
         { "title" : "Official Python Tutorial",
-        "url" : "http://docs.python.org/2/tutorial/"},
+        "url" : "http://docs.python.org/2/tutorial/",
+        "views" : 123},
         {"title":"How to Think like a Computer Scientist",
-        "url":"http://www.greenteapress.com/thinkpython/"},
+        "url":"http://www.greenteapress.com/thinkpython/",
+        "views" : 321},
         {"title":"Learn Python in 10 Minutes",
-        "url":"http://www.korokithakis.net/tutorials/python/"} ] 
+        "url":"http://www.korokithakis.net/tutorials/python/",  
+        "views" : 35} ]
     
     django_pages = [
-        {"title":"Official Django Tutorial",        "url":"https://docs.djangoproject.com/en/1.9/intro/tutorial01/"},        {"title":"Django Rocks",        "url":"http://www.djangorocks.com/"},        {"title":"How to Tango with Django",        "url":"http://www.tangowithdjango.com/"} ]
+        {"title":"Official Django Tutorial",        "url":"https://docs.djangoproject.com/en/1.9/intro/tutorial01/",
+        "views" : 55},        
+        {"title":"Django Rocks",
+        "url":"http://www.djangorocks.com/",
+        "views" : 23},
+                {"title":"How to Tango with Django",        "url":"http://www.tangowithdjango.com/",
+        "views" : 23} ]
     
     other_pages = [
-        {"title":"Bottle",        "url":"http://bottlepy.org/docs/dev/"},        {"title":"Flask",
-        "url":"http://flask.pocoo.org"} ]
+        {"title":"Bottle",        "url":"http://bottlepy.org/docs/dev/",
+        "views" : 3},
+        {"title":"Flask",
+        "url":"http://flask.pocoo.org",
+        "views" : 23} ]
         
     cats= { 
     "Python" :{
@@ -34,13 +47,13 @@ def populate():
         "Other Frameworks" : {
             "pages" : other_pages,
             "views" : 32,
-            "likes" : 16} }
+            "likes" : 16}
+     }
     
-    # add categories and pages
     for cat, cat_data in cats.items():
         c = add_cat(cat, views = cat_data["views"], likes = cat_data["likes"])
         for p in cat_data["pages"]:
-            add_page(c, p["title"], p["url"])
+            add_page(c, p["title"], p["url"], p["views"])
     
     # print out categories that were added
     for c in Category.objects.all():
