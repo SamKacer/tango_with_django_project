@@ -25,118 +25,192 @@ from django.conf import settings
 from rango.decorators import chapter8
 import os.path
 
-# ====== Chapter 8
-class Chapter8ViewTests(TestCase):
+#Chapter 9
+from rango.models import User, UserProfile
+from rango.forms import UserForm, UserProfileForm
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.files.storage import default_storage
+from rango.decorators import chapter9
 
-    def test_base_template_exists(self):
-        # Check base.html exists inside template folder
-        path_to_base = settings.TEMPLATE_DIR + '/rango/base.html'
-        print(path_to_base)
-        self.assertTrue(os.path.isfile(path_to_base))
+# ===== Chapter 9
+class Chapter9ModelTests(TestCase):
+    def test_user_profile_model(self):
+        # Create a user
+        user, user_profile = test_utils.create_user()
 
-    @chapter8
-    def test_titles_displayed(self):
-        # Create user and log in
+        # Check there is only the saved user and its profile in the database
+        all_users = User.objects.all()
+        self.assertEquals(len(all_users), 1)
+
+        all_profiles = UserProfile.objects.all()
+        self.assertEquals(len(all_profiles), 1)
+
+        # Check profile fields were saved correctly
+        all_profiles[0].user = user
+        all_profiles[0].website = user_profile.website
+
+class Chapter9ViewTests(TestCase):
+
+    @chapter9
+    def test_registration_form_is_displayed_correctly(self):
+        #Access registration page
+        try:
+            response = self.client.get(reverse('register'))
+        except:
+            try:
+                response = self.client.get(reverse('rango:register'))
+            except:
+                return False
+
+        # Check if form is rendered correctly
+        # self.assertIn('<h1>Register with Rango</h1>', response.content.decode('ascii'))
+        self.assertIn('<strong>register here!</strong><br />'.lower(), response.content.decode('ascii').lower())
+
+        # Check form in response context is instance of UserForm
+        self.assertTrue(isinstance(response.context['user_form'], UserForm))
+
+        # Check form in response context is instance of UserProfileForm
+        self.assertTrue(isinstance(response.context['profile_form'], UserProfileForm))
+
+        user_form = UserForm()
+        profile_form = UserProfileForm()
+
+        # Check form is displayed correctly
+        self.assertEquals(response.context['user_form'].as_p(), user_form.as_p())
+        self.assertEquals(response.context['profile_form'].as_p(), profile_form.as_p())
+
+        # Check submit button
+        self.assertIn('type="submit"', response.content.decode('ascii'))
+        self.assertIn('name="submit"', response.content.decode('ascii'))
+        self.assertIn('value="Register"', response.content.decode('ascii'))
+
+    @chapter9
+    def test_login_form_is_displayed_correctly(self):
+        #Access login page
+        try:
+            response = self.client.get(reverse('login'))
+        except:
+            try:
+                response = self.client.get(reverse('rango:login'))
+            except:
+                return False
+
+        #Check form display
+        #Header
+        self.assertIn('<h1>Login to Rango</h1>'.lower(), response.content.decode('ascii').lower())
+
+        #Username label and input text
+        self.assertIn('Username:', response.content.decode('ascii'))
+        self.assertIn('input type="text"', response.content.decode('ascii'))
+        self.assertIn('name="username"', response.content.decode('ascii'))
+        self.assertIn('size="50"', response.content.decode('ascii'))
+
+        #Password label and input text
+        self.assertIn('Password:', response.content.decode('ascii'))
+        self.assertIn('input type="password"', response.content.decode('ascii'))
+        self.assertIn('name="password"', response.content.decode('ascii'))
+        self.assertIn('value=""', response.content.decode('ascii'))
+        self.assertIn('size="50"', response.content.decode('ascii'))
+
+        #Submit button
+        self.assertIn('input type="submit"', response.content.decode('ascii'))
+        self.assertIn('value="submit"', response.content.decode('ascii'))
+
+    @chapter9
+    def test_login_form_is_displayed_correctly(self):
+        #Access login page
+        try:
+            response = self.client.get(reverse('login'))
+        except:
+            try:
+                response = self.client.get(reverse('rango:login'))
+            except:
+                return False
+
+        #Check form display
+        #Header
+        self.assertIn('<h1>Login to Rango</h1>'.lower(), response.content.decode('ascii').lower())
+        
+        #Username label and input text
+        self.assertIn('Username:', response.content.decode('ascii'))
+        self.assertIn('input type="text"', response.content.decode('ascii'))
+        self.assertIn('name="username"', response.content.decode('ascii'))
+        self.assertIn('size="50"', response.content.decode('ascii'))
+
+        #Password label and input text
+        self.assertIn('Password:', response.content.decode('ascii'))
+        self.assertIn('input type="password"', response.content.decode('ascii'))
+        self.assertIn('name="password"', response.content.decode('ascii'))
+        self.assertIn('value=""', response.content.decode('ascii'))
+        self.assertIn('size="50"', response.content.decode('ascii'))
+
+        #Submit button
+        self.assertIn('input type="submit"', response.content.decode('ascii'))
+        self.assertIn('value="submit"', response.content.decode('ascii'))
+
+    """
+    @chapter9
+    def test_login_provides_error_message(self):
+        # Access login page
+        try:
+            response = self.client.post(reverse('login'), {'username': 'wronguser', 'password': 'wrongpass'})
+        except:
+            try:
+                response = self.client.post(reverse('rango:login'), {'username': 'wronguser', 'password': 'wrongpass'})
+            except:
+                return False
+
+        print(response.content.decode('ascii'))
+        try:
+            self.assertIn('wronguser', response.content.decode('ascii'))
+        except:
+            self.assertIn('Invalid login details supplied.', response.content.decode('ascii'))
+    """
+    @chapter9
+    def test_login_redirects_to_index(self):
+        # Create a user
         test_utils.create_user()
-        self.client.login(username='testuser', password='test1234')
 
-        # Create categories
-        categories = test_utils.create_categories()
+        # Access login page via POST with user data
+        try:
+            response = self.client.post(reverse('login'), {'username': 'testuser', 'password': 'test1234'})
+        except:
+            try:
+                response = self.client.post(reverse('rango:login'), {'username': 'testuser', 'password': 'test1234'})
+            except:
+                return False
 
-        # Access index and check the title displayed
-        response = self.client.get(reverse('index'))
-        self.assertIn('Rango -'.lower(), response.content.decode('ascii').lower())
+        # Check it redirects to index
+        self.assertRedirects(response, reverse('index'))
 
-        # Access category page and check the title displayed
-        response = self.client.get(reverse('show_category', args=[categories[0].slug]))
-        self.assertIn(categories[0].name.lower(), response.content.decode('ascii').lower())
+    @chapter9
+    def test_upload_image(self):
+        # Create fake user and image to upload to register user
+        image = SimpleUploadedFile("testuser.jpg", b"file_content", content_type="image/jpeg")
+        try:
+            response = self.client.post(reverse('register'),
+                             {'username': 'testuser', 'password':'test1234',
+                              'email':'testuser@testuser.com',
+                              'website':'http://www.testuser.com',
+                              'picture':image } )
+        except:
+            try:
+                response = self.client.post(reverse('rango:register'),
+                                 {'username': 'testuser', 'password':'test1234',
+                                  'email':'testuser@testuser.com',
+                                  'website':'http://www.testuser.com',
+                                  'picture':image } )
+            except:
+                return False
 
-        # Access about page and check the title displayed
-        response = self.client.get(reverse('about'))
-        self.assertIn('About'.lower(), response.content.decode('ascii').lower())
+        # Check user was successfully registered
+        self.assertIn('thank you for registering!'.lower(), response.content.decode('ascii').lower())
+        user = User.objects.get(username='testuser')
+        user_profile = UserProfile.objects.get(user=user)
+        path_to_image = './media/profile_images/testuser.jpg'
 
-        # Access login page and check the title displayed
-        response = self.client.get(reverse('login'))
-        self.assertIn('Login'.lower(), response.content.decode('ascii').lower())
+        # Check file was saved properly
+        self.assertTrue(os.path.isfile(path_to_image))
 
-        # Access register page and check the title displayed
-        response = self.client.get(reverse('register'))
-        self.assertIn('Register'.lower(), response.content.decode('ascii').lower())
-
-        # Access restricted page and check the title displayed
-        response = self.client.get(reverse('restricted'))
-        self.assertIn("Since you're logged in".lower(), response.content.decode('ascii').lower())
-
-        # Access add page and check the title displayed
-        response = self.client.get(reverse('add_page', args=[categories[0].slug]))
-        self.assertIn('Add Page'.lower(), response.content.decode('ascii').lower())
-
-        # Access add new category page and check the title displayed
-        response = self.client.get(reverse('add_category'))
-        self.assertIn('Add Category'.lower(), response.content.decode('ascii').lower())
-
-    @chapter8
-    def test_pages_using_templates(self):
-        # Create user and log in
-        test_utils.create_user()
-        self.client.login(username='testuser', password='test1234')
-
-        # Create categories
-        categories = test_utils.create_categories()
-        # Create a list of pages to access
-        pages = [reverse('index'), reverse('about'), reverse('add_category'), reverse('register'), reverse('login'),
-                 reverse('show_category', args=[categories[0].slug]), reverse('add_page', args=[categories[0].slug])]#, reverse('restricted')]
-
-        # Create a list of pages to access
-        templates = ['rango/index.html', 'rango/about.html', 'rango/add_category.html', 'rango/register.html',
-                     'rango/login.html','rango/category.html', 'rango/add_page.html']#, 'rango/restricted.html']
-
-        # For each page in the page list, check if it extends from base template
-        for template, page in zip(templates, pages):
-            response = self.client.get(page)
-            self.assertTemplateUsed(response, template)
-
-    @chapter8
-    def test_url_reference_in_index_page_when_logged(self):
-        # Create user and log in
-        test_utils.create_user()
-        self.client.login(username='testuser', password='test1234')
-
-        # Access index page
-        response = self.client.get(reverse('index'))
-
-        # Check links that appear for logged person only
-        self.assertIn(reverse('add_category'), response.content.decode('ascii'))
-        self.assertIn(reverse('restricted'), response.content.decode('ascii'))
-        self.assertIn(reverse('logout'), response.content.decode('ascii'))
-        self.assertIn(reverse('about'), response.content.decode('ascii'))
-
-    @chapter8
-    def test_url_reference_in_index_page_when_not_logged(self):
-        #Access index page with user not logged
-        response = self.client.get(reverse('index'))
-
-        # Check links that appear for logged person only
-        self.assertIn(reverse('register'), response.content.decode('ascii'))
-        self.assertIn(reverse('login'), response.content.decode('ascii'))
-        self.assertIn(reverse('about'), response.content.decode('ascii'))
-
-    def test_link_to_index_in_base_template(self):
-        # Access index
-        response = self.client.get(reverse('index'))
-
-        # Check for url referencing index
-        self.assertIn(reverse('index'), response.content.decode('ascii'))
-
-    @chapter8
-    def test_url_reference_in_category_page(self):
-        # Create user and log in
-        test_utils.create_user()
-        self.client.login(username='testuser', password='test1234')
-
-        # Create categories
-        test_utils.create_categories()
-
-        # Check for add_page in category page
-        response = self.client.get(reverse('show_category', args=['category-1']))
-        self.assertIn(reverse('add_page', args=['category-1']), response.content.decode('ascii'))
+        # Delete fake file created
+        default_storage.delete('./media/profile_images/testuser.jpg')
