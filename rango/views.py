@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from datetime import datetime
 from django.contrib.auth import authenticate, login, logout
 from django.http import HttpResponse, HttpResponseRedirect
 from django.core.urlresolvers import reverse 
@@ -6,15 +7,47 @@ from rango.models import Category, Page, User, UserProfile
 from rango.forms import CategoryForm, PageForm, UserForm, UserProfileForm
 from django.contrib.auth.decorators import login_required
 
+# a helper method 
+def get_server_side_cookie(request, cookie, default_val = None):
+    val = request.session.get(cookie)
+    if not val:
+        val = default_val
+    # endif
+    return val
+
+# helper method for handling visits cookies 
+def visitor_cookie_handler(request):
+    # get number of visits to the site 
+    visits = int(get_server_side_cookie(request, 'visits', '1'))
+    last_visit_cookie = get_server_side_cookie(request, 'last_visit',
+        str(datetime.now()))
+    last_visit_time = datetime.strptime(last_visit_cookie[:-7],
+        '%Y-%m-%d %H:%M:%S')
+    # if it has been more then a day since last visit S')
+    if(datetime.now() -last_visit_time).days > 0:
+        visits += 1
+        # update visits cookie 
+        request.session['last_visit'] = str(datetime.now())
+    else: # not more than a day
+        visits = 1
+        request.session['last_visit'] = last_visit_cookie
+    
+    # set/update visits cookie
+    request.session['visits'] = visits
+
 def index(request):
     category_list = Category.objects.order_by('-likes')[:5]
     page_list = Page.objects.order_by('-views')[:5]
     context_dict = {"categories" : category_list,
         "pages" : page_list}
-    return render(request, 'rango/index.html', context = context_dict)
+    visitor_cookie_handler(request)
+    context_dict['visits'] = request.session['visits']
+    return render(request, 'rango/index.html', context_dict)
 
 def about(request):
     context_dict = {}
+    visitor_cookie_handler(request)
+    context_dict['visits'] = request.session['visits']
     return render(request, 'rango/about.html', context = context_dict)
 
 def show_category(request, category_name_url):
