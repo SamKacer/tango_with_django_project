@@ -25,11 +25,11 @@ def visitor_cookie_handler(request):
         '%Y-%m-%d %H:%M:%S')
     # if it has been more then a day since last visit S')
     if(datetime.now() -last_visit_time).days > 0:
-        visits += 1
-        # update visits cookie 
+        visits +=1
+        # set/update last visit cookie 
         request.session['last_visit'] = str(datetime.now())
     else: # not more than a day
-        visits = 1
+                # set/update last visit cookie  
         request.session['last_visit'] = last_visit_cookie
     
     # set/update visits cookie
@@ -152,7 +152,7 @@ def user_login(request):
                 return HttpResponse("Your Rango account is disabled.")
         else: # invalid user details provided 
             print("Invalid login details: {0}, {1}".format(username, password))
-            return HttpResponse("Invalid login details supplied.")
+            return HttpResponse("Invalid login details supplied. wronguser")
     else: # request is not post
         return  render(request, 'rango/login.html', {})
 
